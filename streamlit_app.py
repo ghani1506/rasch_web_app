@@ -450,26 +450,54 @@ def make_distribution_plot(theta, difficulty):
 
 
 def make_person_item_map(theta, difficulty, item_names):
-    fig, ax = plt.subplots(figsize=(7, 7))
+    """
+    Improved person-item map with non-overlapping item labels.
+    Labels are automatically spread vertically when items have similar logits.
+    """
+
+    fig_height = max(7, 0.35 * len(item_names))
+    fig, ax = plt.subplots(figsize=(9, fig_height))
 
     rng = np.random.default_rng(123)
-    x_person = rng.normal(0, 0.025, len(theta))
+    x_person = rng.normal(0, 0.035, len(theta))
 
-    ax.scatter(x_person, theta, alpha=0.25, s=12, label="Persons")
-    ax.scatter(np.ones(len(difficulty)), difficulty, marker="D", s=60, label="Items")
+    ax.scatter(
+        x_person,
+        theta,
+        alpha=0.25,
+        s=14,
+        label="Persons"
+    )
 
-    for y, label in zip(difficulty, item_names):
-        ax.text(1.04, y, str(label), va="center", fontsize=8)
+    ax.scatter(
+        np.ones(len(difficulty)),
+        difficulty,
+        marker="D",
+        s=65,
+        label="Items"
+    )
 
-    ax.set_xlim(-0.25, 1.65)
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(["Persons\n(ability)", "Items\n(difficulty)"])
-    ax.set_ylabel("Logits")
-    ax.set_title("Person-Item Map")
-    ax.axhline(0, linestyle="--", linewidth=1)
-    ax.grid(axis="y", alpha=0.25)
-    ax.legend()
-    return fig
+    # Sort items by difficulty
+    item_data = sorted(
+        zip(difficulty, item_names),
+        key=lambda x: x[0]
+    )
+
+    sorted_difficulty = np.array([x[0] for x in item_data])
+    sorted_names = [x[1] for x in item_data]
+
+    # Create adjusted label positions to avoid overlap
+    min_gap = 0.18
+    adjusted_y = sorted_difficulty.copy()
+
+    for i in range(1, len(adjusted_y)):
+        if adjusted_y[i] - adjusted_y[i - 1] < min_gap:
+            adjusted_y[i] = adjusted_y[i - 1] + min_gap
+
+    # Draw labels with connector lines
+    for original_y, label_y, label in zip(sorted_difficulty, adjusted_y, sorted_names):
+        ax.plot(
+            [1.02, 1.12],
 
 
 def make_binary_icc_plot(results):
